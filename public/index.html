@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agência Rei - Cadastro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+    <h1 class="text-2xl font-bold mb-6 text-center">Agência Rei - Cadastro</h1>
+    <form id="cadastroForm" class="space-y-4">
+        <div>
+            <label for="fullName" class="block text-sm font-medium text-gray-700">Nome Completo</label>
+            <input type="text" id="fullName" name="fullName" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+        </div>
+        <div>
+            <label for="email" class="block text-sm font-medium text-gray-700">E-mail</label>
+            <input type="email" id="email" name="email" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+        </div>
+        <div>
+            <label for="phone" class="block text-sm font-medium text-gray-700">Telefone</label>
+            <input type="text" id="phone" name="phone" placeholder="(DD) 99999-9999" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+        </div>
+        <div>
+            <label for="password" class="block text-sm font-medium text-gray-700">Senha</label>
+            <input type="password" id="password" name="password" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700">Cadastrar</button>
+    </form>
+    <p id="message" class="mt-4 text-center text-red-500 hidden"></p>
+</div>
+<script src="script.js"></script>
+
+</body>
+</html>

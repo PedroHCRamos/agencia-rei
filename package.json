@@ -1,0 +1,16 @@
+{
+    "name": "agencia-rei",
+    "version": "1.0.0",
+    "description": "Landing page for Agência Rei",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "sqlite3": "^5.1.6",
+        "bcrypt": "^5.1.0",
+        "twilio": "^4.11.0",
+        "dotenv": "^16.0.3"
+    }
+}
