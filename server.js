@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const twilio = require('twilio');
 const app = express();
@@ -12,17 +12,22 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioWhatsAppNumber = process.env.TWILIO_WHATSAPP_NUMBER;
 const client = twilio(accountSid, authToken);
 
-// SQLite database setup
-const db = new sqlite3.Database('users.db', (err) => {
-    if (err) console.error('Database connection error:', err);
-    db.run(`CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        fullName TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE,
-        phone TEXT NOT NULL,
-        password TEXT NOT NULL
-    )`);
+// PostgreSQL setup
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
 });
+
+// Create users table
+pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        fullName VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        phone VARCHAR(20) NOT NULL,
+        password VARCHAR(255) NOT NULL
+    )
+`).catch(err => console.error('Error creating table:', err));
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -46,12 +51,8 @@ app.post('/api/register', async (req, res) => {
 
     try {
         // Check if email already exists
-        const emailExists = await new Promise((resolve) => {
-            db.get('SELECT email FROM users WHERE email = ?', [email], (err, row) => {
-                resolve(!!row);
-            });
-        });
-        if (emailExists) {
+        const emailResult = await pool.query('SELECT email FROM users WHERE email = $1', [email]);
+        if (emailResult.rows.length > 0) {
             return res.status(400).json({ message: 'E-mail já cadastrado.' });
         }
 
@@ -59,34 +60,34 @@ app.post('/api/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Store user in database
-        db.run(
-            'INSERT INTO users (fullName, email, phone, password) VALUES (?, ?, ?, ?)',
-            [fullName, email, phone, hashedPassword],
-            (err) => {
-                if (err) {
-                    return res.status(500).json({ message: 'Erro ao salvar no banco de dados.' });
-                }
-
-                // Send WhatsApp message
-                const firstName = fullName.split(' ')[0];
-                client.messages
-                    .create({
-                        from: twilioWhatsAppNumber,
-                        to: `whatsapp:+55${phone.replace(/\D/g, '')}`,
-                        body: `Parabéns ${firstName}! Cadastro realizado com sucesso na Agência Rei.`
-                    })
-                    .then(() => {
-                        res.status(200).json({ message: 'Cadastro realizado com sucesso!' });
-                    })
-                    .catch((error) => {
-                        console.error('WhatsApp error:', error);
-                        res.status(500).json({ message: 'Cadastro realizado, mas falha ao enviar mensagem no WhatsApp.' });
-                    });
-            }
+        await pool.query(
+            'INSERT INTO users (fullName, email, phone, password) VALUES ($1, $2, $3, $4)',
+            [fullName, email, phone, hashedPassword]
         );
+
+        // Send WhatsApp message
+        const firstName = fullName.split(' ')[0];
+        await client.messages.create({
+            from: twilioWhatsAppNumber,
+            to: `whatsapp:+55${phone.replace(/\D/g, '')}`,
+            body: `Parabéns ${firstName}! Cadastro realizado com sucesso na Agência Rei.`
+        });
+
+        res.status(200).json({ message: 'Cadastro realizado com sucesso!' });
     } catch (error) {
         console.error('Server error:', error);
         res.status(500).json({ message: 'Erro no servidor.' });
+    }
+});
+
+// Temporary route for debugging (remove after testing)
+app.get('/api/users', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT id, fullName, email, phone FROM users');
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ message: 'Erro ao consultar banco de dados.' });
     }
 });
 
